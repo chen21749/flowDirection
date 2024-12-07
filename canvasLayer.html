@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="./ol/ol.css">
+  <style type="text/css">
+    html, body, .container {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%
+    }
+
+    .container {
+      display: flex;
+      justify-content: center; /* 水平居中 */
+      align-items: center;
+    }
+
+    #map {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script src="./ol/ol.js"></script>
+<script src="./ol/canvasLayer.js"></script>
+<script src="./ol/proj4.js"></script>
+
+<script>
+ 
+  const Map = ol.Map;
+  
+  const View = ol.View;
+  
+  const TileLayer = ol.layer.Tile;
+ 
+  const fromLonLat = ol.proj.fromLonLat;
+  
+  const Feature = ol.Feature;
+ 
+  const OSM = ol.source.OSM;
+
+  const styleFunction = function(feature) {
+    return styles[feature.getGeometry().getType()];
+  };
+
+  function initMap() {
+  
+    // proj4.defs("EPSG:4546","+proj=tmerc +lat_0=0 +lon_0=111 +k=1 +x_0=500000 +y_0=0 +ellps=GRS80 +units=m +no_defs +type=crs");
+
+    ol.proj.proj4.register(proj4);
+    const layer = new TileLayer({
+      source: new OSM({
+        projection: 'EPSG:4326',
+        url: '//{a-d}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      }),
+    });
+
+    const map = new Map({
+  
+      layers: [layer],
+      target: 'map',
+      view: new View({
+        projection: 'EPSG:4326',
+        center: [116.40174080009785, 39.89128889996283],
+        // center: [113.53450137499999, 34.44104525],
+        zoom: 12,
+      }),
+      // pixelRatio: 2,
+    });
+
+    window.map = map;
+
+  fetch('./data/road.json')
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok ' + response.statusText);
+    }
+    return response.json();
+  })
+  .then(data => { 
+
+    var vectorSource = new ol.source.Vector({
+      features: new ol.format.GeoJSON().readFeatures(data, 
+        {
+          // dataProjection: "EPSG:4546", 
+          // featureProjection: "EPSG:4326" 
+        }
+      )
+    });
+
+        //加线
+      var vectorLayer = new ol.layer.Vector({
+        source: vectorSource,
+        style: new ol.style.Style({
+        stroke: new ol.style.Stroke({
+                    color: '#3399CC',
+                    width: 3
+                })
+            })
+       });
+
+    map.addLayer(vectorLayer);
+
+    var features = vectorSource.getFeatures();
+
+    var array = [];
+
+    for(var i = 0; i < features.length; i++)
+    {
+      if(features[i].getGeometry().getType() == 'MultiLineString') continue;
+      var obj = 
+      {
+        coordinates: features[i].getGeometry().getCoordinates(),
+        color: "rgba(" + (Math.floor(Math.random() * 255) + 1) + "," + (Math.floor(Math.random() * 255) + 1) + "," + (Math.floor(Math.random() * 255) + 1) + "," + "150)"
+        //color: "#ff473c"
+      }
+      
+      array.push(obj);
+    }
+    
+
+    var customLayer = new CanvasLayer(array, {
+        zIndex: 9999
+    });
+
+    map.addLayer(customLayer);
+  })
+  .catch(error => {
+    
+  });
+    
+  }
+
+  if (document.getElementById('map')) {
+    initMap();
+  }
+</script>
+</body>
+</html>

@@ -224,6 +224,8 @@ var CanvasLayerRender = (function (_super) {
         this.animate = this.animate.bind(this);
         this.pointerCoordinate = [];
         this.angle = 0;
+        this.width_max = 0;
+        this.height_max = 0;
         _super.call(this, layer) || this;
     }
 
@@ -246,6 +248,9 @@ var CanvasLayerRender = (function (_super) {
         if (canvas.width != width || canvas.height != height) {
             canvas.width = width;
             canvas.height = height;
+
+            // this.width_max = width;
+            // this.height_max = height;
         }
         this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
         this.draw();
@@ -296,11 +301,26 @@ var CanvasLayerRender = (function (_super) {
             // var lineCoordinate = this.getRotateLineCoordinate(this._pathsInfo[i].paths[index], this._pathsInfo[i].angles[index], 20);
             var lineCoordinate = this.getRotateLineCoordinate(this._pathsInfo[i].paths[index], 0, 4);
 
-
             this.context.strokeStyle = this._pathsInfo[i].color;
             var startPixel = lineCoordinate[0];
             var targetPixel = lineCoordinate[1];
     
+            var current_canvas_height = this.context.canvas.height;
+            var current_canvas_width = this.context.canvas.width;
+            
+            if( 
+               startPixel[0] <= current_canvas_width &&
+               startPixel[0] >= 0 &&
+               startPixel[1] <= current_canvas_height &&
+               startPixel[1] >= 0 &&
+               targetPixel[0] <= current_canvas_width &&
+               targetPixel[0] >= 0 &&
+               targetPixel[1] <= current_canvas_height &&
+               targetPixel[1] >= 0
+            )
+            {
+                // continue;
+            
             //按像素
             // var coordinatePixel = this.project(this.pointerCoordinate);
             // var lineCoordinate = this.getRotateLineCoordinate(coordinatePixel, 45, 10);
@@ -318,7 +338,8 @@ var CanvasLayerRender = (function (_super) {
             this.context.moveTo(startPixel[0], startPixel[1]);
             this.context.lineTo(targetPixel[0], targetPixel[1]);
             this.context.stroke();
-    
+            //console.log(startPixel,targetPixel);
+           }
             this._pathsInfo[i].index = index + 1;
         }
 

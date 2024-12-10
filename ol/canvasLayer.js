@@ -166,6 +166,10 @@ var Files = (function () {
     return Files;
 }())
 
+var ViewHint = {
+    ANIMATING: 0,
+    INTERACTING: 1
+};
 
 //CanvasLayer
 var CanvasLayer = (function (_super) {
@@ -189,10 +193,12 @@ var CanvasLayer = (function (_super) {
 
     CanvasLayer.prototype.render = function (frameState, target) {
         var layerRenderer = this.getRender();
-        this._files.project = layerRenderer.getPixelFromCoordinateInternal.bind(this, frameState);
-        layerRenderer._pathsInfo = this._files.preData(this._data);
 
-        return layerRenderer.renderFrame(frameState, target);
+        if (layerRenderer.prepareFrame(frameState)) {
+            this._files.project = layerRenderer.getPixelFromCoordinateInternal.bind(this, frameState);
+            layerRenderer._pathsInfo = this._files.preData(this._data);
+           return layerRenderer.renderFrame(frameState, target);
+        }
     };
 
     CanvasLayer.prototype.getRender = function () {
@@ -232,6 +238,26 @@ var CanvasLayerRender = (function (_super) {
     CanvasLayerRender.prototype.useContainer = function (target, transform, opacity) {
         _super.prototype.useContainer.call(this, null, transform, opacity);
     }
+
+    CanvasLayerRender.prototype.prepareFrame = function (frameState) {
+        var layerState = frameState.layerStatesArray[frameState.layerIndex];
+        var viewState = frameState.viewState;
+        var hints = frameState.viewHints;
+        var renderedExtent = frameState.extent;
+        if (layerState.extent !== undefined) {
+            renderedExtent = extent.getIntersection(renderedExtent, proj.fromUserExtent(layerState.extent, viewState.projection));
+        }
+        if (!hints[ViewHint.ANIMATING] && !frameState.animate && !hints[ViewHint.INTERACTING] && !ol.extent.isEmpty(renderedExtent)) {
+            return true;
+        }
+        else {
+            var layer = this.getLayer();
+            return layer.get('forceRender');
+        }
+        // return !!this.wind;
+    };
+
+
 
     CanvasLayerRender.prototype.renderFrame = function (frameState, target) {
         var canvasTransform = ol.transform.toString(this.pixelTransform);
